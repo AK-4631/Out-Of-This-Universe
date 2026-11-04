@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OUT OF THIS UNIVERSE</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+<canvas id="minimap" width="180" height="180"></canvas>
+<div id="vignette"></div>
+<div id="damage-flash"></div>
+<div id="heal-flash"></div>
+<div id="white-flash"></div>
+<div id="stasis-tint"></div>
+<div id="overdrive-edges"></div>
+<div id="grain"></div>
+<div id="dmg-layer"></div>
+<div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+<div id="letterbox-top" class="letterbox"></div>
+<div id="letterbox-bottom" class="letterbox"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="crosshair"><div class="dot"></div></div>
+  <div id="hitmarker"></div>
+  <div id="top-left">
+    <div id="player-plate">
+      <div class="plate-row"><span id="player-name">DR. ELIAS VANCE</span><span id="level-badge">LV 1</span></div>
+      <div class="bar-wrap hp"><div id="hp-bar"></div><div id="sh-bar"></div><span id="hp-text">100</span></div>
+      <div class="bar-wrap en"><div id="en-bar"></div><span id="en-text">100</span></div>
+      <div class="bar-wrap xp"><div id="xp-bar"></div></div>
+      <div id="status-effects"></div>
+    </div>
+    <div id="mission-tracker">
+      <div id="mission-title">PROLOGUE: THE WAY OUT</div>
+      <div id="mission-obj">Survive the rift emergence</div>
+      <div id="mission-sub"></div>
+    </div>
+    <div id="ai-panel" class="ai-follow"><div class="ai-head"><span class="ai-orb"></span><b>LOOM-7</b><span id="ai-mode" class="m-assist">ASSIST</span></div><div id="ai-state">Standing by</div><div id="ai-obj">◇ scanning…</div><div class="ai-keys">[H] mode · [Y] ping objective</div></div>
+  </div>
+  <div id="top-right">
+    <div id="dimension-badge"><span id="dim-icon">◈</span><span id="dim-name">RIFT DEBRIS</span></div>
+    <div id="resources"><span title="Salvage">⬢ <b id="salvage">0</b></span><span title="Rift Shards">◆ <b id="shards">0</b></span><span title="Echo Logs">▤ <b id="logs-count">0/50</b></span><span title="Threat">☠ <b id="threat">0</b></span></div>
+  </div>
+  <div id="threat-dir" class="hidden">⚠</div>
+  <div id="bottom-left">
+    <div id="weapons-bar">
+      <div class="wslot active" id="w0"><span class="wkey">1</span><span class="wname">PULSE RIFLE</span><div class="wsub" id="wAmmo0">∞</div></div>
+      <div class="wslot" id="w1"><span class="wkey">2</span><span class="wname">SCATTER BLASTER</span><div class="wsub" id="wAmmo1">∞</div></div>
+      <div class="wslot locked" id="w2"><span class="wkey">3</span><span class="wname">RAIL LANCE 🔒</span><div class="wsub" id="wAmmo2"></div></div>
+      <div class="wslot locked" id="w3"><span class="wkey">4</span><span class="wname">VOID REPEATER 🔒</span><div class="wsub" id="wAmmo3"></div></div>
+      <div class="wslot locked" id="w4"><span class="wkey">5</span><span class="wname">STARFORGED 🔒</span><div class="wsub" id="wAmmo4"></div></div>
+      <div class="wslot locked" id="w5"><span class="wkey">6</span><span class="wname">VOID PULSE 🔒</span><div class="wsub" id="wAmmo5"></div></div>
+      <div class="wslot locked" id="w6"><span class="wkey">7</span><span class="wname">CHRONO SCYTHE 🔒</span><div class="wsub" id="wAmmo6"></div></div>
+      <div class="wslot locked" id="w7"><span class="wkey">8</span><span class="wname">SINGULARITY 🔒</span><div class="wsub" id="wAmmo7"></div></div>
+      <div class="wslot locked" id="w8"><span class="wkey">9</span><span class="wname">AUTHOR'S PEN 🔒</span><div class="wsub" id="wAmmo8"></div></div>
+      <div class="wslot locked" id="w9"><span class="wkey">0</span><span class="wname">SEEKER SWARM 🔒</span><div class="wsub" id="wAmmo9"></div></div>
+    </div>
+    <div id="abilities-bar">
+      <div class="aslot" id="a0"><span class="akey">Q</span><span class="aname">NOVA</span><div class="cd" id="cd0"></div></div>
+      <div class="aslot" id="a1"><span class="akey">E</span><span class="aname">BLINK</span><div class="cd" id="cd1"></div></div>
+      <div class="aslot" id="a2"><span class="akey">R</span><span class="aname">SURGE</span><div class="cd" id="cd2"></div></div>
+      <div class="aslot locked" id="a3"><span class="akey">T</span><span class="aname">STASIS 🔒</span><div class="cd" id="cd3"></div></div>
+      <div class="aslot locked" id="a4"><span class="akey">G</span><span class="aname">OVERDRV 🔒</span><div class="cd" id="cd4"></div></div>
+      <div class="aslot locked" id="a5"><span class="akey">C</span><span class="aname">GRAV 🔒</span><div class="cd" id="cd5"></div></div>
+      <div class="aslot locked" id="a6"><span class="akey">V</span><span class="aname">DECOY 🔒</span><div class="cd" id="cd6"></div></div>
+      <div class="aslot locked" id="a7"><span class="akey">B</span><span class="aname">ORBITAL 🔒</span><div class="cd" id="cd7"></div></div>
+      <div class="aslot locked" id="a8"><span class="akey">Z</span><span class="aname">CHRN SHD 🔒</span><div class="cd" id="cd8"></div></div>
+      <div class="aslot locked" id="a9"><span class="akey">X</span><span class="aname">PHASE DS 🔒</span><div class="cd" id="cd9"></div></div>
+      <div class="aslot locked" id="a10"><span class="akey">O</span><span class="aname">STRAFE 🔒</span><div class="cd" id="cd10"></div></div>
+      <div class="aslot locked" id="a11"><span class="akey">U</span><span class="aname">OMEGA 🔒</span><div class="cd" id="cd11"></div></div>
+    </div>
+    <div id="combo-meter" class="hidden">x<span id="combo-count">0</span> <span id="combo-label">ULTRA COMBO</span><div id="combo-bar"><div id="combo-fill"></div></div></div>
+  </div>
+  <div id="bottom-right">
+    <div id="boss-bar-wrap" class="hidden"><div id="boss-name">HERALD OF THE OUTSIDE</div><div id="boss-bar-bg"><div id="boss-bar"></div></div></div>
+    <div id="controls-hint">WASD / Arrows move · Mouse aim · LMB fire · 1-9,0 weapons · Q E R T G C V B Z X O/U abilities · Space jump · Shift sprint · F interact · H drone mode · Y ping · Tab upgrades · K skills · M map · J achievements · Esc pause</div>
+  </div>
+  <div id="interact-prompt" class="hidden"><span id="interact-key">F</span><span id="interact-text">Enter Portal</span></div>
+  <div id="subtitle" class="hidden"></div>
+  <div id="toast-wrap"></div>
+</div>
+
+<!-- Title -->
+<div id="title-screen" class="screen">
+  <div class="stars-bg"></div>
+  <div class="title-inner">
+    <div class="game-logo-sub">A SCI-FI ACTION-ADVENTURE</div>
+    <h1 class="game-logo">OUT OF<br><span>THIS UNIVERSE</span></h1>
+    <div class="tagline">Reality is being rewritten. Find the author.</div>
+    <div class="menu">
+      <button id="btn-new" class="mbtn primary">▶ &nbsp;BEGIN DRIFT</button>
+      <button id="btn-continue" class="mbtn">CONTINUE</button>
+      <button id="btn-endless" class="mbtn">∞ &nbsp;ENDLESS RIFT</button>
+      <button id="btn-how" class="mbtn">FIELD MANUAL</button>
+      <button id="btn-settings-title" class="mbtn">SETTINGS</button>
+    </div>
+    <div class="title-foot">Headphones recommended · WASD / Arrow keys + Mouse / Gamepad · v4.4 OVERMAX Build · 11 dimensions · 10 weapons · 12 abilities · 60 upgrades · 5 endings · ∞ Endless Rift · 18 achievements · Cinematic realism (ACES/Bloom/FXAA/Shadows/Sky/Water)</div>
+    <div id="how-panel" class="hidden">
+      <h3>FIELD MANUAL — OVERMAX</h3>
+      <p><b>WASD / Arrow keys</b> move · <b>Mouse</b> look · <b>LMB</b> fire · <b>1-9,0</b> weapons · <b>Q</b> Nova · <b>E</b> Blink · <b>R</b> Surge · <b>T</b> Stasis · <b>G</b> Overdrive · <b>C</b> Grav-Well · <b>V</b> Decoys · <b>B</b> Orbital · <b>Z</b> Chrono Shield · <b>X</b> Phase Dash · <b>O</b> Meridian Strafe · <b>U</b> OMEGA PROTOCOL · <b>H</b> cycle LOOM-7 drone mode · <b>Y</b> ping nearest objective · <b>Space</b> jump/double-jump (hold to jump higher) · <b>Shift</b> sprint · <b>F</b> interact · <b>Tab</b> inventory · <b>K</b> skills · <b>M</b> map · <b>J</b> codex · <b>Esc</b> pause · <b>Gamepad</b> left stick move / right stick look / A jump / RT fire / LT or L3 sprint</p>
+      <p>Chain kills for <b>COMBO</b> multiplier (more XP/salvage). Crits explode with SUNFORGE. Elites glow gold — worth hunting. Vaults in VOID/TEMPEST hold ULTRA weapons. <b>THE MARGIN</b> hides a secret portal in THE SOURCE (east side) — glyphs wake THE REDACTOR and yield the Singularity Launcher + Author's Pen. 50 logs + hearts + shards = <b>TRUE ENDING</b>. Defeat the Redactor = <b>OVERTURN ending</b>. NG+ keeps skills (starts richer: +100 salvage and +1 skill point per loop). GOD MODE in Settings unlocks everything instantly (permanent). <b>∞ ENDLESS RIFT</b> on the title screen is a sealed survival arena — waves escalate forever, bosses every 5th wave, vaults every 3rd, the SEEKER SWARM drops at wave 12, your best wave is recorded, death ends the run. A <b>hunter cache</b> in the rift unlocks the Seeker Swarm [0] in the campaign too. Achievements (J panel) persist across deaths, endings and NG+. All 10 weapons = ARMORY: COMPLETE.</p>
+      <p><b>REALISM</b> — ACES filmic tone mapping, soft PCF shadow cascade that follows the player, procedural sky dome with animated clouds and sun scattering, PMREM environment lighting on PBR armor/metal, procedural albedo + normal + roughness maps for terrain and opaque model surfaces, contact shadows, Fresnel ocean with analytic waves and glints, and a final film pass combining bloom, FXAA, optional radial motion blur, sun shafts, vignette and sensor grain. Settings → <b>Quality</b>: <b>ULTRA MAX</b> = up to 2.5× pixel ratio, hardware-clamped 4096² shadows, 1024² surface maps and densest world detail; <b>ultra</b> = 2× / 2048²; <b>balanced</b> = 1.5× / 1024²; <b>performance</b> = 1× with shadows and bloom disabled.</p>
+      <button id="btn-how-close" class="mbtn small">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Intro cinematic -->
+<div id="intro-screen" class="screen hidden">
+  <div id="intro-visual"><div id="rift"></div><div id="intro-ship">⟁</div><div id="intro-shake"></div></div>
+  <div id="intro-text"></div>
+  <div id="intro-sub" class="hidden"><span class="voice">??? :</span> <span id="intro-voice-line">“You were never supposed to find the way out.”</span></div>
+  <div id="intro-skip">Press ENTER or click SKIP to take control ▸ <button id="btn-skip-intro">SKIP</button></div>
+</div>
+
+<!-- Dialogue -->
+<div id="dialogue" class="hidden">
+  <div id="dlg-speaker">ARCHON</div>
+  <div id="dlg-text"></div>
+  <div id="dlg-choices"></div>
+  <div id="dlg-hint">Click a choice or press 1-5 · SPACE to continue</div>
+</div>
+
+<!-- Panels -->
+<div id="panel-inventory" class="panel hidden">
+  <h2>LOADOUT // INVENTORY <span class="close-hint">[Tab] close</span></h2>
+  <div class="panel-cols">
+    <div><h3>WEAPONS</h3><div id="inv-weapons"></div>
+    <h3>RESOURCES</h3><div id="inv-res"></div></div>
+    <div><h3>CRAFTING / UPGRADES</h3><div id="inv-craft"></div>
+    <h3>SPACECRAFT: MERIDIAN</h3><div id="inv-ship"></div></div>
+  </div>
+</div>
+<div id="panel-skills" class="panel hidden">
+  <h2>NEURAL SKILL TREE <span class="close-hint">[K] close · Points: <b id="skill-points">0</b></span></h2>
+  <div id="skill-grid"></div>
+</div>
+<div id="panel-map" class="panel hidden">
+  <h2>STAR MAP // DIMENSIONS <span class="close-hint">[M] close</span></h2>
+  <div id="starmap"></div>
+  <div id="map-lore"></div>
+</div>
+<div id="panel-missions" class="panel hidden">
+  <h2>MISSIONS // CODEX <span class="close-hint">[J] close</span></h2>
+  <div class="panel-cols"><div><h3>OBJECTIVES</h3><div id="missions-list"></div></div><div><h3>ECHO LOGS</h3><div id="codex-list"></div></div></div>
+  <h3>ACHIEVEMENTS</h3><div id="achievements-list"></div>
+</div>
+<div id="panel-settings" class="panel hidden">
+  <h2>SETTINGS // ACCESSIBILITY <span class="close-hint">[Esc] close</span></h2>
+  <div id="settings-list"></div>
+</div>
+<div id="pause-menu" class="panel hidden">
+  <h2>PAUSED — DRIFT SUSPENDED</h2>
+  <div class="menu"><button id="btn-resume" class="mbtn primary">RESUME</button><button id="btn-settings-pause" class="mbtn">SETTINGS</button><button id="btn-quit-title" class="mbtn">QUIT TO TITLE</button></div>
+</div>
+
+<!-- Ending -->
+<div id="ending-screen" class="screen hidden"><div class="title-inner"><div class="game-logo-sub" id="ending-kicker">ENDING</div><h1 class="game-logo" id="ending-title">THE AUTHOR</h1><p id="ending-text"></p><div id="ending-stats"></div><div class="menu"><button id="btn-ending-restart" class="mbtn primary">DRIFT AGAIN</button></div></div></div>
+<div id="death-screen" class="screen hidden"><div class="title-inner"><h1 class="game-logo">SIGNAL <span>LOST</span></h1><p class="tagline" id="death-text">Your pattern scatters across the rift...</p><div class="menu"><button id="btn-respawn" class="mbtn primary">RECONSTRUCT (Respawn)</button></div></div></div>
+
+<div id="fade"></div>
+<script src="js/data.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
